@@ -17,115 +17,115 @@ The main inspiration comes from https://github.com/hipstersmoothie/obsidian-plug
 - Supports remapping the language of the code block to another.
 - Optionally add trailing spaces that are removed after formatting. This ensures correct rendering in live preview mode.
 
-    Example:
+  Example:
 
-    ```text
-    -
-    -␣[ ]
-    ```
+  ```text
+  -
+  -␣[ ]
+  ```
 
-    Formatted:
+  Formatted:
 
-    ```text
-    -␣
-    -␣[ ]␣
-    ```
+  ```text
+  -␣
+  -␣[ ]␣
+  ```
 
 - Supports enabling or disabling formatting for the current file separately in frontmatter. Enabled by default when not set.
 
-    Example:
+  Example:
 
-    ```yaml
-    ---
-    prettier: false
-    ---
-    ```
+  ```yaml
+  ---
+  prettier: false
+  ---
+  ```
 
 - Supports enabling or disabling fast mode formatting for the current file separately in frontmatter. Disabled by default when not set.
 
-    Example:
+  Example:
 
-    ```yaml
-    ---
-    prettier-fast-mode: false
-    ---
-    ```
+  ```yaml
+  ---
+  prettier-fast-mode: false
+  ---
+  ```
 
 ## Commands and Menus
 
 - Format all content
 
-    ID: `format-content`
+  ID: `format-content`
 
-    Hotkey: `None` (default)
+  Hotkey: `None` (default)
 
 - Format selected content
 
-    ID: `format-selection`
+  ID: `format-selection`
 
-    Hotkey: `None` (default)
+  Hotkey: `None` (default)
 
-    Only available when some content is selected.
+  Only available when some content is selected.
 
 ## Settings
 
 - Format on save
 
-    Default: `false`
+  Default: `false`
 
-    Format the current content when saving the file.
+  Format the current content when saving the file.
 
 - Format on file change
 
-    Default: `false`
+  Default: `false`
 
-    Format the last opened file when the file is closed or switched to another file.
+  Format the last opened file when the file is closed or switched to another file.
 
 - Format code blocks
 
-    Default: `false`
+  Default: `false`
 
-    Include code blocks when formatting. Currently supports js(x), ts(x), css, scss, less, html, json, and yaml.
+  Include code blocks when formatting. Currently supports js(x), ts(x), css, scss, less, html, json, and yaml.
 
 - Add trailing spaces
 
-    Default: `false`
+  Default: `false`
 
-    Add spaces at the end of empty list items to ensure correct rendering in live preview mode.
+  Add spaces at the end of empty list items to ensure correct rendering in live preview mode.
 
 - Code block language mappings
 
-    Default: `None`
+  Default: `None`
 
-    Map code block languages from one to another. For example, after setting the mapping `dataviewjs → js`, Prettier will format all `dataviewjs` code blocks as `js` language.
+  Map code block languages from one to another. For example, after setting the mapping `dataviewjs → js`, Prettier will format all `dataviewjs` code blocks as `js` language.
 
 - Format options
 
-    Default:
+  Default:
 
-    ```json
-    {
-        "trailingComma": "es5",
-        "tabWidth": 4,
-        "semi": false,
-        "singleQuote": true
-    }
-    ```
+  ```json
+  {
+    "trailingComma": "es5",
+    "tabWidth": 4,
+    "semi": false,
+    "singleQuote": true
+  }
+  ```
 
-    Formatting options passed to Prettier (in JSON format).
+  Formatting options passed to Prettier (in JSON format).
 
 - Ignore patterns
 
-    Default:
+  Default:
 
-    ```text
-    **/.git
-    **/.svn
-    **/.hg
-    **/node_modules
-    ```
+  ```text
+  **/.git
+  **/.svn
+  **/.hg
+  **/node_modules
+  ```
 
-    File patterns to ignore (relative to the vault directory).
+  File patterns to ignore (relative to the vault directory).
 
 ## Change Log
 

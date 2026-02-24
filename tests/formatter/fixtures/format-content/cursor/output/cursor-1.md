@@ -11,10 +11,9 @@
 ## Format code block
 
 ```javascript
-function foo ()
-{
-  return "foo"
+function foo() {
+  return "foo";
 }
 
-const bar='bar'
+const bar = "bar";
 ```

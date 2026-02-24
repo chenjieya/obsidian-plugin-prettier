@@ -1,14 +1,14 @@
 {
-    "extends": "@goodbyenjn/configs/tsconfigs/react",
-    "compilerOptions": {
-        "jsxImportSource": "jsx",
+  "extends": "@goodbyenjn/configs/tsconfigs/react",
+  "compilerOptions": {
+    "jsxImportSource": "jsx",
 
-        "paths": {
-            "@/*": ["./src/*"]
-        },
-
-        "types": ["vitest/globals"]
+    "paths": {
+      "@/*": ["./src/*"]
     },
-    "include": ["./*", "src", "types", "jsx", "scripts", "tests"],
-    "exclude": ["dist"]
+
+    "types": ["vitest/globals"]
+  },
+  "include": ["./*", "src", "types", "jsx", "scripts", "tests"],
+  "exclude": ["dist"]
 }

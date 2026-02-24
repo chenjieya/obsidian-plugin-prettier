@@ -12,32 +12,32 @@ const a=1
 `.trim();
 
 const options: Options = {
-    parser: "markdown",
-    plugins: [pluginBabel, pluginEstree, pluginMarkdown],
-    embeddedLanguageFormatting: "auto",
+  parser: "markdown",
+  plugins: [pluginBabel, pluginEstree, pluginMarkdown],
+  embeddedLanguageFormatting: "auto",
 };
 
 describe("Prettier with patch", () => {
-    test.concurrent("With mappings", async ({ expect }) => {
-        const __languageMappings = new Map([["noscript", "javascript"]]);
-        const formatted = await prettier.format(text, { ...options, __languageMappings });
+  test.concurrent("With mappings", async ({ expect }) => {
+    const __languageMappings = new Map([["noscript", "javascript"]]);
+    const formatted = await prettier.format(text, { ...options, __languageMappings });
 
-        expect(formatted).toMatchInlineSnapshot(`
+    expect(formatted).toMatchInlineSnapshot(`
           "\`\`\`noscript
           const a = 1;
           \`\`\`
           "
         `);
-    });
+  });
 
-    test.concurrent("Without mappings", async ({ expect }) => {
-        const formatted = await prettier.format(text, options);
+  test.concurrent("Without mappings", async ({ expect }) => {
+    const formatted = await prettier.format(text, options);
 
-        expect(formatted).toMatchInlineSnapshot(`
+    expect(formatted).toMatchInlineSnapshot(`
           "\`\`\`noscript
           const a=1
           \`\`\`
           "
         `);
-    });
+  });
 });

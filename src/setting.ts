@@ -1,10 +1,10 @@
 import { omit } from "@goodbyenjn/utils/remeda";
 import {
-    ButtonComponent,
-    PluginSettingTab,
-    Setting,
-    TextAreaComponent,
-    TextComponent,
+  ButtonComponent,
+  PluginSettingTab,
+  Setting,
+  TextAreaComponent,
+  TextComponent,
 } from "obsidian";
 
 import { fmt } from "./i18n";
@@ -15,298 +15,294 @@ import type PrettierPlugin from "./main";
 import type { Settings } from "./model";
 
 export class SettingsTab extends PluginSettingTab {
-    private data;
+  private data;
 
-    constructor(plugin: PrettierPlugin) {
-        super(plugin.app, plugin);
+  constructor(plugin: PrettierPlugin) {
+    super(plugin.app, plugin);
 
-        this.data = new Proxy<Settings>(plugin.settings, {
-            get: (target, key, receiver) => {
-                return Reflect.get(target, key, receiver);
-            },
+    this.data = new Proxy<Settings>(plugin.settings, {
+      get: (target, key, receiver) => {
+        return Reflect.get(target, key, receiver);
+      },
 
-            // eslint-disable-next-line max-params
-            set: (target, key, value, receiver) => {
-                const result = Reflect.set(target, key, value, receiver);
-                if (result) {
-                    plugin.saveSettings();
-                }
-
-                return result;
-            },
-        });
-    }
-
-    display() {
-        this.containerEl.empty();
-
-        try {
-            this.addFormatOnSave();
-            this.addFormatOnFileChange();
-            this.addFormatCodeBlock();
-            // this.addRemoveExtraSpaces();
-            this.addAddTrailingSpaces();
-            this.addLanguageMappings();
-            this.addFormatOptions();
-            this.addIgnorePatterns();
-        } catch (error) {
-            logger("Error displaying settings tab:", error);
-            this.containerEl.empty();
-            this.showErrorBoundary(error);
+      // eslint-disable-next-line max-params
+      set: (target, key, value, receiver) => {
+        const result = Reflect.set(target, key, value, receiver);
+        if (result) {
+          plugin.saveSettings();
         }
+
+        return result;
+      },
+    });
+  }
+
+  display() {
+    this.containerEl.empty();
+
+    try {
+      this.addFormatOnSave();
+      this.addFormatOnFileChange();
+      this.addFormatCodeBlock();
+      // this.addRemoveExtraSpaces();
+      this.addAddTrailingSpaces();
+      this.addLanguageMappings();
+      this.addFormatOptions();
+      this.addIgnorePatterns();
+    } catch (error) {
+      logger("Error displaying settings tab:", error);
+      this.containerEl.empty();
+      this.showErrorBoundary(error);
+    }
+  }
+
+  private showErrorBoundary(error: unknown) {
+    const errorBoundary = this.containerEl.createDiv("prettier-settings__error-boundary");
+    errorBoundary.createSpan({
+      text: fmt("setting:error-boundary-title"),
+      cls: "prettier-settings__error-boundary-title",
+    });
+    errorBoundary.createSpan({
+      text: fmt("setting:error-boundary-description"),
+      cls: "prettier-settings__error-boundary-description",
+    });
+
+    let message = "";
+    if (error instanceof Error) {
+      message = error.message;
+
+      if (error.stack) {
+        message += `\n\n${error.stack}`;
+      }
+    } else if (typeof error === "string") {
+      message = error;
+    } else {
+      try {
+        message = JSON.stringify(error, null, 2);
+      } catch {
+        message = String(error);
+      }
     }
 
-    private showErrorBoundary(error: unknown) {
-        const errorBoundary = this.containerEl.createDiv("prettier-settings__error-boundary");
-        errorBoundary.createSpan({
-            text: fmt("setting:error-boundary-title"),
-            cls: "prettier-settings__error-boundary-title",
-        });
-        errorBoundary.createSpan({
-            text: fmt("setting:error-boundary-description"),
-            cls: "prettier-settings__error-boundary-description",
-        });
+    errorBoundary.createEl("pre", "prettier-settings__error-boundary-message").createEl("code", {
+      text: message,
+    });
+  }
 
-        let message = "";
-        if (error instanceof Error) {
-            message = error.message;
+  private addFormatOnSave() {
+    this.addToggleSetting(
+      fmt("setting:format-on-save-name"),
+      fmt("setting:format-on-save-description"),
+      "formatOnSave",
+    );
+  }
 
-            if (error.stack) {
-                message += `\n\n${error.stack}`;
-            }
-        } else if (typeof error === "string") {
-            message = error;
+  private addFormatOnFileChange() {
+    this.addToggleSetting(
+      fmt("setting:format-on-file-change-name"),
+      fmt("setting:format-on-file-change-description"),
+      "formatOnFileChange",
+    );
+  }
+
+  private addFormatCodeBlock() {
+    this.addToggleSetting(
+      fmt("setting:format-code-block-name"),
+      fmt("setting:format-code-block-description"),
+      "formatCodeBlock",
+    );
+  }
+
+  private addRemoveExtraSpaces() {
+    this.addToggleSetting(
+      fmt("setting:remove-extra-spaces-name"),
+      fmt("setting:remove-extra-spaces-description"),
+      "removeExtraSpaces",
+    );
+  }
+
+  private addAddTrailingSpaces() {
+    this.addToggleSetting(
+      fmt("setting:add-trailing-spaces-name"),
+      fmt("setting:add-trailing-spaces-description"),
+      "addTrailingSpaces",
+    );
+  }
+
+  private addLanguageMappings() {
+    const addTextInput = (containerEl: HTMLElement) => {
+      const input = new TextComponent(containerEl);
+
+      const setValid = (isValid: boolean) => {
+        if (isValid) {
+          input.inputEl.classList.remove("invalid");
         } else {
-            try {
-                message = JSON.stringify(error, null, 2);
-            } catch {
-                message = String(error);
-            }
+          input.inputEl.classList.add("invalid");
         }
 
-        errorBoundary
-            .createEl("pre", "prettier-settings__error-boundary-message")
-            .createEl("code", {
-                text: message,
-            });
-    }
+        return input;
+      };
 
-    private addFormatOnSave() {
-        this.addToggleSetting(
-            fmt("setting:format-on-save-name"),
-            fmt("setting:format-on-save-description"),
-            "formatOnSave",
-        );
-    }
+      input.inputEl.className = "prettier-settings__mapping-text";
+      input.onChange(value => {
+        setValid(value.length !== 0);
+      });
 
-    private addFormatOnFileChange() {
-        this.addToggleSetting(
-            fmt("setting:format-on-file-change-name"),
-            fmt("setting:format-on-file-change-description"),
-            "formatOnFileChange",
-        );
-    }
+      return Object.assign(input, { setValid });
+    };
 
-    private addFormatCodeBlock() {
-        this.addToggleSetting(
-            fmt("setting:format-code-block-name"),
-            fmt("setting:format-code-block-description"),
-            "formatCodeBlock",
-        );
-    }
+    const addMapping = (containerEl: HTMLElement) => {
+      const container = containerEl.createDiv("prettier-settings__mapping");
 
-    private addRemoveExtraSpaces() {
-        this.addToggleSetting(
-            fmt("setting:remove-extra-spaces-name"),
-            fmt("setting:remove-extra-spaces-description"),
-            "removeExtraSpaces",
-        );
-    }
+      const from = addTextInput(container);
+      container.createSpan({ text: "→", cls: "prettier-settings__mapping-symbol" });
+      const to = addTextInput(container);
 
-    private addAddTrailingSpaces() {
-        this.addToggleSetting(
-            fmt("setting:add-trailing-spaces-name"),
-            fmt("setting:add-trailing-spaces-description"),
-            "addTrailingSpaces",
-        );
-    }
+      const button = new ButtonComponent(container).setClass("prettier-settings__mapping-button");
 
-    private addLanguageMappings() {
-        const addTextInput = (containerEl: HTMLElement) => {
-            const input = new TextComponent(containerEl);
+      return { container, from, to, button };
+    };
 
-            const setValid = (isValid: boolean) => {
-                if (isValid) {
-                    input.inputEl.classList.remove("invalid");
-                } else {
-                    input.inputEl.classList.add("invalid");
-                }
+    new Setting(this.containerEl)
+      .setName(fmt("setting:language-mappings-name"))
+      .setDesc(fmt("setting:language-mappings-description"));
 
-                return input;
-            };
+    const extra = this.containerEl.createDiv("setting-item-extra");
 
-            input.inputEl.className = "prettier-settings__mapping-text";
-            input.onChange(value => {
-                setValid(value.length !== 0);
-            });
-
-            return Object.assign(input, { setValid });
+    const { container, from, to, button } = addMapping(extra);
+    container.addClass("prettier-settings__mapping-header");
+    button.setButtonText(fmt("setting:add-button-name")).onClick(() => {
+      const fromValue = from.getValue();
+      const toValue = to.getValue();
+      if (fromValue.length === 0 || toValue.length === 0) {
+        if (fromValue.length === 0) {
+          from.setValid(false);
+        }
+        if (toValue.length === 0) {
+          to.setValid(false);
+        }
+      } else {
+        from.setValid(true);
+        to.setValid(true);
+        this.data.languageMappings = {
+          ...this.data.languageMappings,
+          [fromValue]: toValue,
         };
+        this.display();
+      }
+    });
 
-        const addMapping = (containerEl: HTMLElement) => {
-            const container = containerEl.createDiv("prettier-settings__mapping");
+    for (const [k, v] of Object.entries(this.data.languageMappings)) {
+      const { from, to, button } = addMapping(extra);
 
-            const from = addTextInput(container);
-            container.createSpan({ text: "→", cls: "prettier-settings__mapping-symbol" });
-            const to = addTextInput(container);
+      from.setValue(k).setDisabled(true);
+      to.setValue(v).setDisabled(true);
+      button.setButtonText(fmt("setting:delete-button-name")).onClick(() => {
+        this.data.languageMappings = omit(this.data.languageMappings, [k]);
+        this.display();
+      });
+    }
+  }
 
-            const button = new ButtonComponent(container).setClass(
-                "prettier-settings__mapping-button",
-            );
+  private addFormatOptions() {
+    this.addResetSetting(
+      fmt("setting:format-options-name"),
+      fmt("setting:format-options-description"),
+      () => {
+        this.data.formatOptions = getDefaultFormatOptions();
+      },
+    );
 
-            return { container, from, to, button };
-        };
+    this.addTextArea()
+      .setValue(this.stringifyFormatOptions())
+      .setValidator(value => this.parseFormatOptions(value));
+  }
 
-        new Setting(this.containerEl)
-            .setName(fmt("setting:language-mappings-name"))
-            .setDesc(fmt("setting:language-mappings-description"));
+  private addIgnorePatterns() {
+    this.addResetSetting(
+      fmt("setting:ignore-patterns-name"),
+      fmt("setting:ignore-patterns-description"),
+      () => {
+        this.data.ignorePatterns = getDefaultIgnorePatterns();
+      },
+    );
 
-        const extra = this.containerEl.createDiv("setting-item-extra");
+    this.addTextArea()
+      .setValue(this.data.ignorePatterns)
+      .onChange(value => {
+        this.data.ignorePatterns = value;
+      });
+  }
 
-        const { container, from, to, button } = addMapping(extra);
-        container.addClass("prettier-settings__mapping-header");
-        button.setButtonText(fmt("setting:add-button-name")).onClick(() => {
-            const fromValue = from.getValue();
-            const toValue = to.getValue();
-            if (fromValue.length === 0 || toValue.length === 0) {
-                if (fromValue.length === 0) {
-                    from.setValid(false);
-                }
-                if (toValue.length === 0) {
-                    to.setValid(false);
-                }
-            } else {
-                from.setValid(true);
-                to.setValid(true);
-                this.data.languageMappings = {
-                    ...this.data.languageMappings,
-                    [fromValue]: toValue,
-                };
-                this.display();
-            }
+  private addToggleSetting(
+    name: string | DocumentFragment,
+    description: string | DocumentFragment,
+    key: { [K in keyof Settings]: Settings[K] extends boolean ? K : never }[keyof Settings],
+  ) {
+    return new Setting(this.containerEl)
+      .setName(name)
+      .setDesc(description)
+      .addToggle(component =>
+        component.setValue(this.data[key]).onChange(value => {
+          this.data[key] = value;
+        }),
+      );
+  }
+
+  private addResetSetting(
+    name: string | DocumentFragment,
+    description: string | DocumentFragment,
+    handler: () => void,
+  ) {
+    return new Setting(this.containerEl)
+      .setName(name)
+      .setDesc(description)
+      .addButton(component => {
+        component.setButtonText(fmt("setting:reset-button-name")).onClick(() => {
+          handler();
+          this.display();
         });
+      });
+  }
 
-        for (const [k, v] of Object.entries(this.data.languageMappings)) {
-            const { from, to, button } = addMapping(extra);
+  private addTextArea() {
+    const textArea = new TextAreaComponent(this.containerEl.createDiv("setting-item-extra"));
 
-            from.setValue(k).setDisabled(true);
-            to.setValue(v).setDisabled(true);
-            button.setButtonText(fmt("setting:delete-button-name")).onClick(() => {
-                this.data.languageMappings = omit(this.data.languageMappings, [k]);
-                this.display();
-            });
-        }
+    let fn: (value: string) => boolean;
+    const setValidator = (validator: typeof fn) => {
+      fn = validator;
+      return textArea;
+    };
+
+    const setValid = (isValid: boolean) => {
+      if (isValid) {
+        textArea.inputEl.classList.remove("invalid");
+      } else {
+        textArea.inputEl.classList.add("invalid");
+      }
+
+      return textArea;
+    };
+
+    textArea.inputEl.className = "prettier-settings__textarea";
+    textArea.onChange(value => {
+      setValid(fn?.(value) ?? true);
+    });
+
+    return Object.assign(textArea, { setValidator, setValid });
+  }
+
+  private stringifyFormatOptions() {
+    return JSON.stringify(this.data.formatOptions, null, 2);
+  }
+
+  private parseFormatOptions(text: string) {
+    try {
+      this.data.formatOptions = JSON.parse(text);
+
+      return true;
+    } catch {
+      return false;
     }
-
-    private addFormatOptions() {
-        this.addResetSetting(
-            fmt("setting:format-options-name"),
-            fmt("setting:format-options-description"),
-            () => {
-                this.data.formatOptions = getDefaultFormatOptions();
-            },
-        );
-
-        this.addTextArea()
-            .setValue(this.stringifyFormatOptions())
-            .setValidator(value => this.parseFormatOptions(value));
-    }
-
-    private addIgnorePatterns() {
-        this.addResetSetting(
-            fmt("setting:ignore-patterns-name"),
-            fmt("setting:ignore-patterns-description"),
-            () => {
-                this.data.ignorePatterns = getDefaultIgnorePatterns();
-            },
-        );
-
-        this.addTextArea()
-            .setValue(this.data.ignorePatterns)
-            .onChange(value => {
-                this.data.ignorePatterns = value;
-            });
-    }
-
-    private addToggleSetting(
-        name: string | DocumentFragment,
-        description: string | DocumentFragment,
-        key: { [K in keyof Settings]: Settings[K] extends boolean ? K : never }[keyof Settings],
-    ) {
-        return new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(description)
-            .addToggle(component =>
-                component.setValue(this.data[key]).onChange(value => {
-                    this.data[key] = value;
-                }),
-            );
-    }
-
-    private addResetSetting(
-        name: string | DocumentFragment,
-        description: string | DocumentFragment,
-        handler: () => void,
-    ) {
-        return new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(description)
-            .addButton(component => {
-                component.setButtonText(fmt("setting:reset-button-name")).onClick(() => {
-                    handler();
-                    this.display();
-                });
-            });
-    }
-
-    private addTextArea() {
-        const textArea = new TextAreaComponent(this.containerEl.createDiv("setting-item-extra"));
-
-        let fn: (value: string) => boolean;
-        const setValidator = (validator: typeof fn) => {
-            fn = validator;
-            return textArea;
-        };
-
-        const setValid = (isValid: boolean) => {
-            if (isValid) {
-                textArea.inputEl.classList.remove("invalid");
-            } else {
-                textArea.inputEl.classList.add("invalid");
-            }
-
-            return textArea;
-        };
-
-        textArea.inputEl.className = "prettier-settings__textarea";
-        textArea.onChange(value => {
-            setValid(fn?.(value) ?? true);
-        });
-
-        return Object.assign(textArea, { setValidator, setValid });
-    }
-
-    private stringifyFormatOptions() {
-        return JSON.stringify(this.data.formatOptions, null, 2);
-    }
-
-    private parseFormatOptions(text: string) {
-        try {
-            this.data.formatOptions = JSON.parse(text);
-
-            return true;
-        } catch {
-            return false;
-        }
-    }
+  }
 }

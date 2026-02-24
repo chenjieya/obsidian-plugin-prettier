@@ -12,69 +12,69 @@ import type { JSX } from "jsx/jsx-runtime";
 type Lang = typeof EN;
 
 type StringLangKey = {
-    [K in keyof Lang]: Lang[K] extends string ? K : never;
+  [K in keyof Lang]: Lang[K] extends string ? K : never;
 }[keyof Lang];
 
 type FragmentLangKey = {
-    [K in keyof Lang]: Lang[K] extends JSX.Element ? K : never;
+  [K in keyof Lang]: Lang[K] extends JSX.Element ? K : never;
 }[keyof Lang];
 
 type TemplateLangKey = {
-    [K in keyof Lang]: Lang[K] extends { template: string } ? K : never;
+  [K in keyof Lang]: Lang[K] extends { template: string } ? K : never;
 }[keyof Lang];
 
 type ComponentLangKey = {
-    [K in keyof Lang]: Lang[K] extends (props: Record<string, string>) => JSX.Element ? K : never;
+  [K in keyof Lang]: Lang[K] extends (props: Record<string, string>) => JSX.Element ? K : never;
 }[keyof Lang];
 
 const maps: Record<string, Lang> = {
-    en: EN,
-    "zh-cn": ZH_CN,
+  en: EN,
+  "zh-cn": ZH_CN,
 };
 
 interface Fmt {
-    <T extends StringLangKey>(key: T): string;
-    <T extends FragmentLangKey>(key: T): JSX.Fragment;
-    <T extends TemplateLangKey>(key: T, placeholders: Lang[T]["placeholder"]): string;
-    <T extends ComponentLangKey>(key: T, props: NonNullable<Parameters<Lang[T]>[0]>): JSX.Fragment;
+  <T extends StringLangKey>(key: T): string;
+  <T extends FragmentLangKey>(key: T): JSX.Fragment;
+  <T extends TemplateLangKey>(key: T, placeholders: Lang[T]["placeholder"]): string;
+  <T extends ComponentLangKey>(key: T, props: NonNullable<Parameters<Lang[T]>[0]>): JSX.Fragment;
 }
 
 export const fmt: Fmt = (key: LangKey, record?: unknown): any => {
-    const locale = moment.locale();
-    const lang = maps[locale] || EN;
-    const value = lang[key];
+  const locale = moment.locale();
+  const lang = maps[locale] || EN;
+  const value = lang[key];
 
-    if (isString(value) || value instanceof DocumentFragment) {
-        return value;
-    } else if (value instanceof HTMLElement) {
-        return <>{value}</>;
-    }
+  if (isString(value) || value instanceof DocumentFragment) {
+    return value;
+  } else if (value instanceof HTMLElement) {
+    return <>{value}</>;
+  }
 
-    if (isFunction(value)) {
-        if (!record) {
-            throw new Error(`Props are required for key: ${key}.`);
-        }
-
-        const Component = value;
-        const props = record as Record<string, string>;
-        const element = <Component {...props} />;
-
-        return element instanceof HTMLElement ? <>{element}</> : element;
-    }
-
+  if (isFunction(value)) {
     if (!record) {
-        throw new Error(`Placeholders are required for key: ${key}.`);
+      throw new Error(`Props are required for key: ${key}.`);
     }
 
-    const { template } = value;
-    const placeholders = record as Record<string, string>;
+    const Component = value;
+    const props = record as Record<string, string>;
+    const element = <Component {...props} />;
 
-    return template.replace(/\${(\w+)}/g, (_, k) => {
-        const v = placeholders[k];
-        if (!isDefined(v)) {
-            throw new Error(`Placeholder: ${k} is missing for key: ${key}.`);
-        }
+    return element instanceof HTMLElement ? <>{element}</> : element;
+  }
 
-        return v;
-    });
+  if (!record) {
+    throw new Error(`Placeholders are required for key: ${key}.`);
+  }
+
+  const { template } = value;
+  const placeholders = record as Record<string, string>;
+
+  return template.replace(/\${(\w+)}/g, (_, k) => {
+    const v = placeholders[k];
+    if (!isDefined(v)) {
+      throw new Error(`Placeholder: ${k} is missing for key: ${key}.`);
+    }
+
+    return v;
+  });
 };

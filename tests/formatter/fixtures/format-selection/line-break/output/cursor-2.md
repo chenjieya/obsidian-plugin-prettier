@@ -8,14 +8,12 @@
 1. list item 1
 2. list item 2
 
-
 ## Format code block
 
 ```javascript
-function foo ()
-{
-  return "foo"
+function foo() {
+  return "foo";
 }
 
-const bar='bar'
+const bar = "bar";
 ```

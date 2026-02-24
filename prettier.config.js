@@ -1,3 +1,5 @@
 import { withConfig } from "@goodbyenjn/configs/prettier";
 
-export default withConfig();
+export default withConfig({
+  tabWidth: 2,
+});
