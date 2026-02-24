@@ -12,3 +12,5 @@ declare global {
     minAppVersion: string;
   }
 }
+
+declare module "cos-js-sdk-v5";

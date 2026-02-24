@@ -46,6 +46,8 @@ export class SettingsTab extends PluginSettingTab {
       this.addFormatCodeBlock();
       // this.addRemoveExtraSpaces();
       this.addAddTrailingSpaces();
+      this.addHeaderSettings();
+      this.addTencentCosSettings();
       this.addLanguageMappings();
       this.addFormatOptions();
       this.addIgnorePatterns();
@@ -127,6 +129,64 @@ export class SettingsTab extends PluginSettingTab {
       fmt("setting:add-trailing-spaces-description"),
       "addTrailingSpaces",
     );
+  }
+
+  private addHeaderSettings() {
+    new Setting(this.containerEl)
+      .setName(fmt("setting:header-start-level-name"))
+      .setDesc(fmt("setting:header-start-level-description"))
+      .addDropdown(component =>
+        component
+          .addOptions({
+            "1": "1",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+          })
+          .setValue(String(this.data.headerStartLevel))
+          .onChange(value => {
+            this.data.headerStartLevel = parseInt(value);
+          }),
+      );
+
+    this.addToggleSetting(
+      fmt("setting:auto-numbering-name"),
+      fmt("setting:auto-numbering-description"),
+      "autoNumbering",
+    );
+  }
+
+  private addTencentCosSettings() {
+    new Setting(this.containerEl)
+      .setName(fmt("setting:tencent-cos-name"))
+      .setDesc(fmt("setting:tencent-cos-description"))
+      .setHeading();
+
+    const addTextInput = (
+      name: string,
+      key: keyof typeof this.data.tencentCos,
+      placeholder?: string,
+    ) => {
+      new Setting(this.containerEl).setName(name).addText(text =>
+        text
+          .setPlaceholder(placeholder || "")
+          .setValue(this.data.tencentCos?.[key] || "")
+          .onChange(value => {
+            this.data.tencentCos = {
+              ...this.data.tencentCos,
+              [key]: value,
+            };
+          }),
+      );
+    };
+
+    addTextInput(fmt("setting:tencent-cos-secret-id") as string, "secretId");
+    addTextInput(fmt("setting:tencent-cos-secret-key") as string, "secretKey");
+    addTextInput(fmt("setting:tencent-cos-bucket") as string, "bucket");
+    addTextInput(fmt("setting:tencent-cos-region") as string, "region", "ap-shanghai");
+    addTextInput(fmt("setting:tencent-cos-domain") as string, "domain", "https://example.com");
   }
 
   private addLanguageMappings() {

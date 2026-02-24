@@ -9,6 +9,7 @@ import pluginYaml from "prettier/plugins/yaml";
 import prettier from "prettier/standalone";
 
 import { MagicString } from "./utils/string";
+import { ImageUploader } from "./image-uploader";
 
 import type PrettierPlugin from "./main";
 import type { Settings } from "./model";
@@ -27,10 +28,12 @@ export class Formatter {
   private app: App;
   private settings: Settings;
   private ignoreCache: Map<string, Ignore> = new Map();
+  private imageUploader: ImageUploader;
 
   constructor(plugin: PrettierPlugin) {
     this.app = plugin.app;
     this.settings = plugin.settings;
+    this.imageUploader = new ImageUploader(plugin);
   }
 
   async formatOnSave(editor: Editor, file: TFile | null) {
@@ -51,13 +54,23 @@ export class Formatter {
     const content = new MagicString(await this.app.vault.read(file));
     const options = this.getPrettierOptions(file);
 
-    content.mutate(await prettier.format(content.original, options));
+    let offset = -1;
+    offset = await this.imageUploader.uploadImages(content, file, offset);
+
+    content.mutate(await prettier.format(content.current, options));
 
     if (this.settings.removeExtraSpaces) {
-      this.removeExtraSpaces(content);
+      offset = this.removeExtraSpaces(content, offset);
     }
     if (this.settings.addTrailingSpaces) {
-      this.addTrailingSpaces(content);
+      offset = this.addTrailingSpaces(content, offset);
+    }
+    if (this.settings.headerStartLevel > 1) {
+      offset = this.adjustHeaderLevels(content, offset);
+    }
+    // Re-calculate minLevel after adjusting headers, because levels might have changed
+    if (this.settings.autoNumbering) {
+      offset = this.addHeaderNumbering(content, offset);
     }
 
     if (!content.isModified) return;
@@ -74,11 +87,17 @@ export class Formatter {
     const options = this.getPrettierOptions(file);
 
     let offset = -1;
+    if (!this.shouldUseFastMode(file)) {
+      offset = content.positionToOffset(editor.getCursor());
+    }
+
+    offset = await this.imageUploader.uploadImages(content, file, offset);
+
     if (this.shouldUseFastMode(file)) {
-      content.mutate(await prettier.format(content.original, options));
+      content.mutate(await prettier.format(content.current, options));
     } else {
-      const result = await prettier.formatWithCursor(content.original, {
-        cursorOffset: content.positionToOffset(editor.getCursor()),
+      const result = await prettier.formatWithCursor(content.current, {
+        cursorOffset: offset,
         ...options,
       });
       content.mutate(result.formatted);
@@ -90,6 +109,13 @@ export class Formatter {
     }
     if (this.settings.addTrailingSpaces) {
       offset = this.addTrailingSpaces(content, offset);
+    }
+    if (this.settings.headerStartLevel > 1) {
+      offset = this.adjustHeaderLevels(content, offset);
+    }
+    // Re-calculate minLevel after adjusting headers, because levels might have changed
+    if (this.settings.autoNumbering) {
+      offset = this.addHeaderNumbering(content, offset);
     }
 
     if (!content.isModified) return;
@@ -108,7 +134,9 @@ export class Formatter {
     const content = new MagicString(editor.getSelection());
     const options = this.getPrettierOptions(file);
 
-    content.mutate(await prettier.format(content.original, options));
+    await this.imageUploader.uploadImages(content, file);
+
+    content.mutate(await prettier.format(content.current, options));
 
     const isOriginalHasNewLine = content.original.endsWith("\n");
     const isModifiedHasNewLine = content.current.endsWith("\n");
@@ -146,6 +174,202 @@ export class Formatter {
     let index = offset;
     for (const [preserve] of matches.toReversed()) {
       index = content.insert(preserve.end, " ", index);
+    }
+
+    return index;
+  }
+
+  adjustHeaderLevels(content: MagicString, offset = -1) {
+    const lines = content.current.split("\n");
+    let inCodeBlock = false;
+    let currentOffset = 0;
+    let index = offset;
+    const edits: { start: number; end: number; text: string }[] = [];
+
+    // Find the minimum header level in the document
+    let minLevel = 100;
+    let hasHeader = false;
+
+    for (const line of lines) {
+      if (line.trim().startsWith("```")) {
+        inCodeBlock = !inCodeBlock;
+      }
+      if (!inCodeBlock) {
+        const match = line.match(/^(\s*)(#+)(\s+)/);
+        if (match) {
+          hasHeader = true;
+          const hashes = match[2]!;
+          if (hashes.length < minLevel) {
+            minLevel = hashes.length;
+          }
+        }
+      }
+    }
+
+    if (!hasHeader) return index;
+
+    const targetStartLevel = this.settings.headerStartLevel;
+    // Calculate how much we need to shift.
+    // If minLevel is 5 (#####) and target is 2 (##), we shift by 2 - 5 = -3.
+    // So ##### (5) becomes ## (2).
+    const shift = targetStartLevel - minLevel;
+
+    if (shift === 0) return index;
+
+    inCodeBlock = false;
+    currentOffset = 0;
+
+    for (const line of lines) {
+      const lineLength = line.length + 1;
+
+      if (line.trim().startsWith("```")) {
+        inCodeBlock = !inCodeBlock;
+      }
+
+      if (!inCodeBlock) {
+        const match = line.match(/^(\s*)(#+)(\s+)/);
+        if (match) {
+          const indent = match[1]!;
+          const hashes = match[2]!;
+          const currentLevel = hashes.length;
+          const newLevel = currentLevel + shift;
+
+          if (newLevel !== currentLevel && newLevel >= 1 && newLevel <= 6) {
+            const start = currentOffset + indent.length;
+            const end = start + hashes.length;
+            edits.push({
+              start,
+              end,
+              text: "#".repeat(newLevel),
+            });
+          }
+        }
+      }
+      currentOffset += lineLength;
+    }
+
+    for (const edit of edits.reverse()) {
+      index = content.update(edit.start, edit.end, edit.text, index);
+    }
+
+    return index;
+  }
+
+  addHeaderNumbering(content: MagicString, offset = -1) {
+    const lines = content.current.split("\n");
+    let inCodeBlock = false;
+    let currentOffset = 0;
+    let index = offset;
+    let counters: number[] = [];
+    const edits: { start: number; end: number; text: string }[] = [];
+
+    // Find min level to correctly calculate relative level
+    let minLevel = 100;
+    for (const line of lines) {
+      if (line.trim().startsWith("```")) {
+        inCodeBlock = !inCodeBlock;
+      }
+      if (!inCodeBlock) {
+        const match = line.match(/^(\s*)(#+)(\s+)/);
+        if (match) {
+          const hashes = match[2]!;
+          if (hashes.length < minLevel) {
+            minLevel = hashes.length;
+          }
+        }
+      }
+    }
+
+    if (minLevel === 100) return index;
+
+    inCodeBlock = false;
+    currentOffset = 0;
+
+    for (const line of lines) {
+      const lineLength = line.length + 1;
+
+      if (line.trim().startsWith("```")) {
+        inCodeBlock = !inCodeBlock;
+      }
+
+      if (!inCodeBlock) {
+        const match = line.match(/^(\s*)(#+)(\s+)(.*)$/);
+        if (match) {
+          const indent = match[1]!;
+          const hashes = match[2]!;
+          const space = match[3]!;
+          const text = match[4]!;
+
+          // Calculate relative level: minLevel -> 1, minLevel+1 -> 2, etc.
+          const level = hashes.length - minLevel + 1;
+
+          // If header levels are adjusted, we need to use the adjusted level
+          // But wait, addHeaderNumbering runs AFTER adjustHeaderLevels?
+          // In formatFile/formatContent:
+          // 1. removeExtraSpaces
+          // 2. addTrailingSpaces
+          // 3. adjustHeaderLevels
+          // 4. addHeaderNumbering
+          //
+          // So if adjustHeaderLevels ran, the `hashes.length` here is already the adjusted level.
+          // And `minLevel` calculated at start of this function is also based on adjusted levels.
+          // So if targetStartLevel is 2, the document starts with ## (level 2).
+          // minLevel = 2.
+          // First header ##: level = 2 - 2 + 1 = 1.
+          // Correct.
+
+          if (level > counters.length) {
+            while (counters.length < level) counters.push(1);
+          } else {
+            counters = counters.slice(0, level);
+            counters[level - 1]!++;
+          }
+
+          const numbering = counters.join(".");
+          let prefix = `${numbering}`; // Default: no trailing dot for 1.1, 1.1.1
+
+          // Only top level (relative level 1) gets a trailing dot: "1.", "2."
+          if (level === 1) {
+            prefix += ".";
+          }
+
+          const textStartOffset = currentOffset + indent.length + hashes.length + space.length;
+          const textMatch = text.match(/^([\d\.]+)(?:\s+(.*))?$/);
+
+          if (textMatch) {
+            const existingNum = textMatch[1]!;
+            const remainingText = textMatch[2] || "";
+
+            // Check if existingNum ends with a dot (for top level) or not (for sub levels)
+            // My generated 'prefix' already handles the trailing dot logic.
+            // If existingNum is "1." and prefix is "1.", they match.
+            // If existingNum is "1" and prefix is "1.", they don't match.
+            // If existingNum is "1.1" and prefix is "1.1", they match.
+
+            if (existingNum !== prefix) {
+              const numStart = textStartOffset;
+              const numEnd = numStart + existingNum.length;
+              edits.push({
+                start: numStart,
+                end: numEnd,
+                text: prefix,
+              });
+            }
+          } else {
+            // No existing number, prepend the new number
+            edits.push({
+              start: textStartOffset,
+              end: textStartOffset,
+              text: `${prefix} `,
+            });
+          }
+        }
+      }
+      currentOffset += lineLength;
+    }
+
+    for (const edit of edits.reverse()) {
+      index = content.update(edit.start, edit.end, edit.text, index);
     }
 
     return index;

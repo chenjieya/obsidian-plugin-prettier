@@ -35,6 +35,17 @@ export const EN = {
   "setting:add-trailing-spaces-name": "Add trailing spaces",
   "setting:add-trailing-spaces-description":
     "Add spaces at the end of empty list items to ensure correct rendering in live preview mode.",
+  "setting:header-start-level-name": "Header Start Level",
+  "setting:header-start-level-description": "Select the starting level (1-6) for top-level headers. E.g., if 2 is selected, # becomes ##, ## becomes ###.",
+  "setting:auto-numbering-name": "Auto Numbering",
+  "setting:auto-numbering-description": "Automatically add hierarchical numbering to headers (e.g., 1. 1.1 1.1.1).",
+  "setting:tencent-cos-name": "Tencent Cloud COS",
+  "setting:tencent-cos-description": "Configure Tencent Cloud Object Storage (COS) for automatic image uploads.",
+  "setting:tencent-cos-secret-id": "SecretId",
+  "setting:tencent-cos-secret-key": "SecretKey",
+  "setting:tencent-cos-bucket": "Bucket Name",
+  "setting:tencent-cos-region": "Region",
+  "setting:tencent-cos-domain": "Custom Domain (Optional)",
   "setting:format-options-name": "Format options",
   "setting:format-options-description": (
     <>

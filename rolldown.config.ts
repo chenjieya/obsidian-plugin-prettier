@@ -59,13 +59,10 @@ export default defineConfig([
     plugins: [
       {
         name: "plugin:assets",
-        load: {
-          filter: {
-            id: /package\.json$/,
-          },
-          handler() {
-            return "null";
-          },
+        load(id) {
+          if (id.endsWith("package.json")) {
+            return JSON.stringify(packageJson);
+          }
         },
         transform: {
           // 只有模块代码中，包含process.env.MANIFEST，才会进入到此钩子

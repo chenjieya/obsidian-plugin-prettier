@@ -33,6 +33,17 @@ export const ZH_CN = {
   "setting:add-trailing-spaces-name": "添加尾部空格",
   "setting:add-trailing-spaces-description":
     "是否在空列表项的末尾添加空格，以确保在实时阅览模式下正确渲染。",
+  "setting:header-start-level-name": "标题起始层级",
+  "setting:header-start-level-description": "选择一级标题（#）转换后的起始层级（1-6）。例如选择 2，则 # 转换为 ##，## 转换为 ###。",
+  "setting:auto-numbering-name": "自动编号",
+  "setting:auto-numbering-description": "是否自动为标题添加层级序号（如 1. 1.1 1.1.1）。",
+  "setting:tencent-cos-name": "腾讯云图床配置",
+  "setting:tencent-cos-description": "配置腾讯云对象存储（COS）以自动上传图片。",
+  "setting:tencent-cos-secret-id": "SecretId",
+  "setting:tencent-cos-secret-key": "SecretKey",
+  "setting:tencent-cos-bucket": "存储桶名称 (Bucket)",
+  "setting:tencent-cos-region": "存储区域 (Region)",
+  "setting:tencent-cos-domain": "自定义域名 (可选)",
   "setting:format-options-name": "格式化选项",
   "setting:format-options-description": (
     <>
